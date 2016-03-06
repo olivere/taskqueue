@@ -9,5 +9,6 @@ env:
 services:
   - redis-server
 install:
+  - go get github.com/satori/go.uuid
   - go get github.com/garyburd/redigo/redis
   - go get github.com/EverythingMe/disposable-redis
