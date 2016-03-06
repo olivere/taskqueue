@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -34,6 +35,14 @@ func fakeRedis() (*dispredis.Server, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+func getRedisStore(r *dispredis.Server, ns string) *RedisStore {
+	if os.Getenv("TRAVIS_GO_VERSION") != "" {
+		// Use real Redis instance
+		return NewRedisStore("localhost:6379", ns, "", 0)
+	}
+	return NewRedisStore(r.Addr(), ns, "", 0)
 }
 
 func getTask(t testing.TB, st *RedisStore, c redis.Conn, id string) *TaskSpec {
@@ -135,7 +144,7 @@ func TestRedisKeys(t *testing.T) {
 		{"taskqueue_test", []string{"tasks", "123"}, "taskqueue_test:tasks:123"},
 	}
 	for _, test := range tests {
-		st := NewRedisStore(r.Addr(), test.NS, "", 0)
+		st := getRedisStore(r, test.NS)
 		got := st.key(test.In...)
 		if got != test.Want {
 			t.Errorf("want %q, got %q", test.Want, got)
@@ -150,7 +159,7 @@ func TestRedisStoreNew(t *testing.T) {
 	}
 	defer r.Stop()
 
-	st := NewRedisStore(r.Addr(), testNamespace, "", 0)
+	st := getRedisStore(r, testNamespace)
 	if want, got := testNamespace, st.ns; want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
@@ -173,8 +182,7 @@ func TestRedisStoreEnqueue(t *testing.T) {
 	}
 	defer r.Stop()
 
-	st := NewRedisStore(r.Addr(), testNamespace, "", 0)
-	// st := NewRedisStore("localhost:6379", testNamespace, "", 0)
+	st := getRedisStore(r, testNamespace)
 	spec := specFromTask(&Task{Topic: "topic"})
 	err = st.Enqueue(spec)
 	if err != nil {
@@ -203,8 +211,7 @@ func TestRedisStoreDequeue(t *testing.T) {
 	defer r.Stop()
 
 	// Enqueue some tasks
-	st := NewRedisStore(r.Addr(), testNamespace, "", 0)
-	// st := NewRedisStore("localhost:6379", testNamespace, "", 0)
+	st := getRedisStore(r, testNamespace)
 	const N = 5
 	var specs []*TaskSpec
 	for i := 0; i < N; i++ {
@@ -252,8 +259,7 @@ func TestRedisStoreNextEmpty(t *testing.T) {
 	}
 	defer r.Stop()
 
-	st := NewRedisStore(r.Addr(), testNamespace, "", 0)
-	// st := NewRedisStore("localhost:6379", testNamespace, "", 0)
+	st := getRedisStore(r, testNamespace)
 	c := st.pool.Get()
 	defer c.Close()
 
@@ -276,8 +282,7 @@ func TestRedisStoreNextOneAvailable(t *testing.T) {
 	}
 	defer r.Stop()
 
-	st := NewRedisStore(r.Addr(), testNamespace, "", 0)
-	// st := NewRedisStore("localhost:6379", testNamespace, "", 0)
+	st := getRedisStore(r, testNamespace)
 	c := st.pool.Get()
 	defer c.Close()
 
@@ -321,8 +326,7 @@ func TestRedisStoreNextManyAvailable(t *testing.T) {
 	defer r.Stop()
 
 	// Enqueue some tasks
-	st := NewRedisStore(r.Addr(), testNamespace, "", 0)
-	// st := NewRedisStore("localhost:6379", testNamespace, "", 0)
+	st := getRedisStore(r, testNamespace)
 	c := st.pool.Get()
 	defer c.Close()
 	const N = 5
@@ -364,8 +368,7 @@ func TestRedisStoreRetry(t *testing.T) {
 	}
 	defer r.Stop()
 
-	st := NewRedisStore(r.Addr(), testNamespace, "", 0)
-	// st := NewRedisStore("localhost:6379", testNamespace, "", 0)
+	st := getRedisStore(r, testNamespace)
 	c := st.pool.Get()
 	defer c.Close()
 
@@ -441,8 +444,7 @@ func TestRedisStoreMoveToDeadQueue(t *testing.T) {
 	}
 	defer r.Stop()
 
-	st := NewRedisStore(r.Addr(), testNamespace, "", 0)
-	// st := NewRedisStore("localhost:6379", testNamespace, "", 0)
+	st := getRedisStore(r, testNamespace)
 	c := st.pool.Get()
 	defer c.Close()
 
@@ -514,8 +516,7 @@ func TestRedisStoreMoveWorkQueueToInputQueue(t *testing.T) {
 	}
 	defer r.Stop()
 
-	st := NewRedisStore(r.Addr(), testNamespace, "", 0)
-	// st := NewRedisStore("localhost:6379", testNamespace, "", 0)
+	st := getRedisStore(r, testNamespace)
 	c := st.pool.Get()
 	defer c.Close()
 
