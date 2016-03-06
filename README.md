@@ -4,6 +4,10 @@
 
 Taskqueue manages running and scheduling tasks (think Sidekiq or Resque).
 
+[![Build Status](https://travis-ci.org/olivere/taskqueue.svg?branch=master)](https://travis-ci.org/olivere/taskqueue)
+[![Godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](http://godoc.org/github.com/olivere/taskqueue)
+[![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/olivere/taskqueue/master/LICENSE)
+
 ## Prerequisites
 
 Redis is currently only persistent storage backend. So you must have Redis
