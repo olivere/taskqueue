@@ -166,6 +166,12 @@ func TestRedisStoreNew(t *testing.T) {
 
 	c := st.pool.Get()
 	defer c.Close()
+
+	_, err = c.Do("PING")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	keys := inputQKeys(t, st, c)
 	if want, got := 0, len(keys); want != got {
 		t.Errorf("want %d, got %d", want, got)

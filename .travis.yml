@@ -2,10 +2,6 @@ sudo: false
 language: go
 go:
   - 1.6
-  - tip
-env:
-  allow_failures:
-    - go: tip
 services:
   - redis-server
 install:
