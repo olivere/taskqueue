@@ -1,0 +1,13 @@
+sudo: false
+language: go
+go:
+  - 1.6
+  - tip
+env:
+  allow_failures:
+    - go: tip
+services:
+  - redis-server
+install:
+  - go get github.com/garyburd/redigo/redis
+  - go get github.com/EverythingMe/disposable-redis
