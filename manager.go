@@ -34,6 +34,7 @@ type Manager struct {
 	st          Store
 	interval    time.Duration
 	concurrency int
+	backoff     BackoffFunc
 	pollerc     chan struct{}
 	workers     []*worker
 	workersWg   sync.WaitGroup
@@ -52,6 +53,7 @@ func New(options ...ManagerOption) *Manager {
 		st:          NewInMemoryStore(),
 		interval:    defaultPollInterval,
 		concurrency: defaultConcurrency,
+		backoff:     exponentialBackoff,
 		started:     false,
 	}
 	for _, opt := range options {
@@ -100,6 +102,18 @@ func SetConcurrency(n int) ManagerOption {
 			n = 1
 		}
 		m.concurrency = n
+	}
+}
+
+// SetBackoffFunc specifies the backoff function that returns the timespan
+// between retries of failed jobs. Exponential backoff is used by default.
+func SetBackoffFunc(fn BackoffFunc) ManagerOption {
+	return func(m *Manager) {
+		if fn == nil {
+			m.backoff = exponentialBackoff
+		} else {
+			m.backoff = fn
+		}
 	}
 }
 
@@ -327,7 +341,7 @@ func (w *worker) process(spec *TaskSpec) error {
 			w.m.st.Publish(&WatchEvent{Type: TaskRetry, Task: spec})
 
 			// Change Priority so that the task will be enqueued last
-			spec.Priority = time.Now().UnixNano()
+			spec.Priority = time.Now().Add(w.m.backoff(spec.Retry)).UnixNano()
 			spec.Retry++
 			err = w.m.st.Retry(spec)
 			if err != nil {
