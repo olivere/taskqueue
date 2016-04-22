@@ -4,7 +4,10 @@
 
 package taskqueue
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 const (
 	// ManagerStart event type is triggered on manager startup.
@@ -36,8 +39,15 @@ type WatchEvent struct {
 // The caller must pass a done channel that it needs to close if it is
 // no longer interested in watching events.
 func (m *Manager) Watch(done chan struct{}) <-chan *WatchEvent {
+	// We initialize two channels here: One for the events from the
+	// taskqueue (events), and one for the ManagerStats events (statsev).
+	// Finally, we merge both channels together so that they appear as
+	// one simple channel.
+
 	events := make(chan *WatchEvent)
 	go m.st.Subscribe(events)
+
+	statsev := make(chan *WatchEvent)
 
 	go func() {
 		// TODO Make this configurable
@@ -48,6 +58,7 @@ func (m *Manager) Watch(done chan struct{}) <-chan *WatchEvent {
 			select {
 			case <-done:
 				// Stop watching
+				close(statsev)
 				close(events)
 				return
 			case <-t.C:
@@ -56,9 +67,44 @@ func (m *Manager) Watch(done chan struct{}) <-chan *WatchEvent {
 					// No stats
 					break
 				}
-				events <- &WatchEvent{Type: ManagerStats, Stats: st}
+				statsev <- &WatchEvent{Type: ManagerStats, Stats: st}
 			}
 		}
 	}()
-	return events
+
+	// merge both channels, and stop if done receives a value
+	return mergeWatchEvents(done, events, statsev)
+}
+
+// mergeWatchEvents merges one or more input channels of WatchEvents together
+// and returns them as a single channel.
+// See https://blog.golang.org/pipelines for details on the implementation.
+func mergeWatchEvents(done <-chan struct{}, cs ...<-chan *WatchEvent) <-chan *WatchEvent {
+	var wg sync.WaitGroup
+	out := make(chan *WatchEvent)
+
+	// Start an output goroutine for each input channel in cs.
+	// output copies values from c to out until c is closed or it
+	// receives a value from done, then output calls wg.Done.
+	output := func(c <-chan *WatchEvent) {
+		for n := range c {
+			select {
+			case out <- n:
+			case <-done:
+			}
+		}
+		wg.Done()
+	}
+	wg.Add(len(cs))
+	for _, c := range cs {
+		go output(c)
+	}
+
+	// Start a goroutine to close out once all the output goroutines are done.
+	// This must start after the wg.Add call.
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+	return out
 }

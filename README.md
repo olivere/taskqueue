@@ -64,7 +64,7 @@ Run an end-to-end test with `go run e2e/main.go`. It simulates a real worker.
 Play with the options: `go run e2e/main.go -h`.
 
 While running the end-to-end tests, open up a second console and run
-`go run ui/main.go`. Then direct your web browser to `127.0.0.1:12345`.
+`cd ui && go run main.go`. Then direct your web browser to `127.0.0.1:12345`.
 
 ![Screenshot](https://raw.githubusercontent.com/olivere/taskqueue/master/images/screenshot1.png)
 
