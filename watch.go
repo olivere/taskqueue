@@ -16,6 +16,8 @@ const (
 	ManagerStop = "MANAGER_STOP"
 	// ManagerStats event type returns global stats periodically.
 	ManagerStats = "MANAGER_STATS"
+	// TaskEnqueue event type is triggered when a new task is enqueued.
+	TaskEnqueue = "TASK_ENQUEUE"
 	// TaskStart event type is triggered when a new task is started.
 	TaskStart = "TASK_START"
 	// TaskRetry event type is triggered when a task is retried.

@@ -236,11 +236,13 @@ func (m *Manager) Enqueue(task *Task) error {
 	if !found {
 		return fmt.Errorf("no such topic: %q", task.Topic)
 	}
-	err := m.st.Enqueue(specFromTask(task))
+	spec := specFromTask(task)
+	err := m.st.Enqueue(spec)
 	if err != nil {
 		return err
 	}
 	m.st.StatsIncrement(EnqueuedField, 1)
+	m.st.Publish(&WatchEvent{Type: TaskEnqueue, Task: spec})
 	return nil
 }
 

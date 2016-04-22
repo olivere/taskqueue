@@ -59,6 +59,11 @@ $(function() {
               $('#DEAD_QUEUE_SIZE').html(stats.dead_queue_size || 0);
             }
             break;
+          case 'TASK_ENQUEUE':
+            var count = parseInt($('#TASK_ENQUEUE').html());
+            count += 1;
+            $('#TASK_ENQUEUE').html(count);
+            break;
           case 'TASK_START':
             var count = parseInt($('#TASK_START').html());
             count += 1;
